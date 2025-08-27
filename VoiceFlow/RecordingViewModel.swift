@@ -9,6 +9,8 @@ class RecordingViewModel: ObservableObject {
     @Published var transcription = ""
     @Published var audioLevel: Float = 0.0
     @Published var isProcessing = false
+    @Published var speechRecognitionAvailable = false
+    @Published var errorMessage: String?
     
     private var audioManager: AudioManager?
     private var speechRecognizer: SpeechRecognizer?
@@ -31,11 +33,19 @@ class RecordingViewModel: ObservableObject {
     
     private func setupSpeechRecognizer() {
         speechRecognizer = SpeechRecognizer()
+        
+        // Subscribe to transcription updates
         speechRecognizer?.transcriptionPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] text in
                 self?.handleTranscription(text)
             }
+            .store(in: &cancellables)
+        
+        // Subscribe to availability updates
+        speechRecognizer?.isAvailablePublisher
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.speechRecognitionAvailable, on: self)
             .store(in: &cancellables)
     }
     
@@ -50,11 +60,19 @@ class RecordingViewModel: ObservableObject {
     
     func startRecording() {
         guard !isRecording else { return }
+        guard speechRecognitionAvailable else {
+            errorMessage = "Speech recognition is not available. Please check your permissions and try again."
+            return
+        }
         
         isRecording = true
         transcription = ""
+        errorMessage = nil
         
-        audioManager?.startRecording()
+        // Start audio level monitoring
+        audioManager?.startAudioLevelMonitoring()
+        
+        // Start speech recognition
         speechRecognizer?.startRecognition()
     }
     
@@ -63,7 +81,10 @@ class RecordingViewModel: ObservableObject {
         
         isRecording = false
         
-        audioManager?.stopRecording()
+        // Stop audio level monitoring
+        audioManager?.stopAudioLevelMonitoring()
+        
+        // Stop speech recognition
         speechRecognizer?.stopRecognition()
         
         // Process final transcription with AI enhancement
@@ -82,11 +103,18 @@ class RecordingViewModel: ObservableObject {
         isProcessing = true
         
         Task {
-            let enhancedText = await transcriptionProcessor?.enhanceTranscription(transcription) ?? transcription
-            
-            await MainActor.run {
-                self.transcription = enhancedText
-                self.isProcessing = false
+            do {
+                let enhancedText = try await transcriptionProcessor?.enhanceTranscription(transcription) ?? transcription
+                
+                await MainActor.run {
+                    self.transcription = enhancedText
+                    self.isProcessing = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = "Failed to enhance transcription: \(error.localizedDescription)"
+                    self.isProcessing = false
+                }
             }
         }
     }
@@ -97,5 +125,10 @@ class RecordingViewModel: ObservableObject {
     
     func clearTranscription() {
         transcription = ""
+        errorMessage = nil
+    }
+    
+    func clearError() {
+        errorMessage = nil
     }
 }

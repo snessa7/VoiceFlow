@@ -11,16 +11,23 @@ class AudioManager: NSObject, ObservableObject {
     
     override init() {
         super.init()
-        setupAudioEngine()
     }
     
-    private func setupAudioEngine() {
+    func requestMicrophonePermission() {
+        // On macOS, microphone permission is handled automatically by the system
+        // when the app first tries to access the microphone
+        print("Microphone permission will be requested automatically when needed on macOS")
+    }
+    
+    func startAudioLevelMonitoring() {
+        guard audioEngine == nil else { return }
+        
         audioEngine = AVAudioEngine()
         inputNode = audioEngine?.inputNode
         
         guard let audioEngine = audioEngine,
               let inputNode = inputNode else {
-            print("Failed to setup audio engine")
+            print("Failed to setup audio engine for level monitoring")
             return
         }
         
@@ -32,9 +39,18 @@ class AudioManager: NSObject, ObservableObject {
         
         do {
             try audioEngine.start()
+            startAudioLevelTimer()
         } catch {
-            print("Failed to start audio engine: \(error)")
+            print("Failed to start audio engine for level monitoring: \(error)")
         }
+    }
+    
+    func stopAudioLevelMonitoring() {
+        audioEngine?.stop()
+        audioEngine?.inputNode.removeTap(onBus: 0)
+        audioEngine = nil
+        inputNode = nil
+        stopAudioLevelTimer()
     }
     
     private func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
@@ -56,47 +72,18 @@ class AudioManager: NSObject, ObservableObject {
         }
     }
     
-    func requestMicrophonePermission() {
-        // On macOS, microphone permission is handled automatically by the system
-        // when the app first tries to access the microphone
-        print("Microphone permission will be requested automatically when needed on macOS")
-    }
-    
-    func startRecording() {
-        guard let audioEngine = audioEngine else { return }
-        
-        if !audioEngine.isRunning {
-            do {
-                try audioEngine.start()
-                startAudioLevelMonitoring()
-            } catch {
-                print("Failed to start recording: \(error)")
-            }
-        }
-    }
-    
-    func stopRecording() {
-        guard let audioEngine = audioEngine else { return }
-        
-        if audioEngine.isRunning {
-            audioEngine.stop()
-            stopAudioLevelMonitoring()
-        }
-    }
-    
-    private func startAudioLevelMonitoring() {
+    private func startAudioLevelTimer() {
         audioLevelTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             // Audio level is already being monitored via processAudioBuffer
         }
     }
     
-    private func stopAudioLevelMonitoring() {
+    private func stopAudioLevelTimer() {
         audioLevelTimer?.invalidate()
         audioLevelTimer = nil
     }
     
     deinit {
-        stopRecording()
-        audioLevelTimer?.invalidate()
+        stopAudioLevelMonitoring()
     }
 }

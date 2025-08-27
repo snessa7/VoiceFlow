@@ -10,26 +10,38 @@ class SpeechRecognizer: NSObject, ObservableObject {
     private let audioEngine = AVAudioEngine()
     
     let transcriptionPublisher = PassthroughSubject<String, Never>()
+    let isAvailablePublisher = PassthroughSubject<Bool, Never>()
     
     override init() {
         super.init()
         speechRecognizer?.delegate = self
+        checkAvailability()
+    }
+    
+    private func checkAvailability() {
+        let isAvailable = speechRecognizer?.isAvailable ?? false
+        isAvailablePublisher.send(isAvailable)
     }
     
     func requestSpeechRecognitionPermission() {
-        SFSpeechRecognizer.requestAuthorization { authStatus in
+        SFSpeechRecognizer.requestAuthorization { [weak self] authStatus in
             DispatchQueue.main.async {
                 switch authStatus {
                 case .authorized:
                     print("Speech recognition authorized")
+                    self?.checkAvailability()
                 case .denied:
                     print("Speech recognition denied")
+                    self?.isAvailablePublisher.send(false)
                 case .restricted:
                     print("Speech recognition restricted")
+                    self?.isAvailablePublisher.send(false)
                 case .notDetermined:
                     print("Speech recognition not determined")
+                    self?.isAvailablePublisher.send(false)
                 @unknown default:
                     print("Speech recognition unknown status")
+                    self?.isAvailablePublisher.send(false)
                 }
             }
         }
@@ -47,9 +59,6 @@ class SpeechRecognizer: NSObject, ObservableObject {
             recognitionTask.cancel()
             self.recognitionTask = nil
         }
-        
-        // On macOS, we don't need to configure audio session like iOS
-        // The system handles audio session management automatically
         
         // Create recognition request
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
@@ -102,10 +111,18 @@ class SpeechRecognizer: NSObject, ObservableObject {
         recognitionTask?.cancel()
         recognitionTask = nil
     }
+    
+    func isRecognitionActive() -> Bool {
+        return audioEngine.isRunning
+    }
 }
 
 extension SpeechRecognizer: SFSpeechRecognizerDelegate {
     func speechRecognizer(_ speechRecognizer: SFSpeechRecognizer, availabilityDidChange available: Bool) {
+        DispatchQueue.main.async {
+            self.isAvailablePublisher.send(available)
+        }
+        
         if !available {
             print("Speech recognizer became unavailable")
         }

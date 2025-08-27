@@ -18,6 +18,43 @@ struct ContentView: View {
             }
             .padding(.horizontal)
             
+            // Status Information
+            VStack(spacing: 10) {
+                // Speech Recognition Status
+                HStack {
+                    Circle()
+                        .fill(recordingViewModel.speechRecognitionAvailable ? Color.green : Color.red)
+                        .frame(width: 8, height: 8)
+                    Text(recordingViewModel.speechRecognitionAvailable ? "Speech Recognition Available" : "Speech Recognition Unavailable")
+                        .font(.caption)
+                        .foregroundColor(recordingViewModel.speechRecognitionAvailable ? .green : .red)
+                    Spacer()
+                }
+                .padding(.horizontal)
+                
+                // Error Message
+                if let errorMessage = recordingViewModel.errorMessage {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        Spacer()
+                        Button("Dismiss") {
+                            recordingViewModel.clearError()
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .font(.caption)
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                }
+            }
+            
             // Recording Status
             VStack(spacing: 10) {
                 if recordingViewModel.isRecording {
@@ -30,6 +67,17 @@ struct ContentView: View {
                         Text("Recording...")
                             .foregroundColor(.red)
                             .fontWeight(.medium)
+                        
+                        if recordingViewModel.isProcessing {
+                            Spacer()
+                            HStack(spacing: 4) {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Enhancing...")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                     }
                     
                     // Audio Level Visualization
@@ -56,9 +104,17 @@ struct ContentView: View {
             // Transcription Display
             if !recordingViewModel.transcription.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Transcription")
-                        .font(.headline)
-                        .foregroundColor(.primary)
+                    HStack {
+                        Text("Transcription")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Button("Clear") {
+                            recordingViewModel.clearTranscription()
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .font(.caption)
+                    }
                     
                     ScrollView {
                         Text(recordingViewModel.transcription)
@@ -92,6 +148,7 @@ struct ContentView: View {
                     .cornerRadius(8)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .disabled(!recordingViewModel.speechRecognitionAvailable)
                 
                 if !recordingViewModel.transcription.isEmpty {
                     Button(action: {

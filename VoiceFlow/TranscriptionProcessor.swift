@@ -8,20 +8,15 @@ class TranscriptionProcessor: ObservableObject {
         self.ollamaClient = OllamaClient()
     }
     
-    func enhanceTranscription(_ rawText: String) async -> String {
+    func enhanceTranscription(_ rawText: String) async throws -> String {
         guard !rawText.isEmpty else { return rawText }
         
-        do {
-            let enhancedText = try await ollamaClient.generate(
-                prompt: createEnhancementPrompt(for: rawText),
-                model: "phi3.5"
-            )
-            
-            return enhancedText.isEmpty ? rawText : enhancedText
-        } catch {
-            print("Transcription enhancement failed: \(error)")
-            return rawText // Fallback to original text
-        }
+        let enhancedText = try await ollamaClient.generate(
+            prompt: createEnhancementPrompt(for: rawText),
+            model: "phi3.5"
+        )
+        
+        return enhancedText.isEmpty ? rawText : enhancedText
     }
     
     private func createEnhancementPrompt(for text: String) -> String {
@@ -42,20 +37,15 @@ class TranscriptionProcessor: ObservableObject {
         """
     }
     
-    func summarizeTranscription(_ text: String) async -> String {
+    func summarizeTranscription(_ text: String) async throws -> String {
         guard !text.isEmpty else { return text }
         
-        do {
-            let summary = try await ollamaClient.generate(
-                prompt: createSummaryPrompt(for: text),
-                model: "phi3.5"
-            )
-            
-            return summary.isEmpty ? text : summary
-        } catch {
-            print("Transcription summarization failed: \(error)")
-            return text // Fallback to original text
-        }
+        let summary = try await ollamaClient.generate(
+            prompt: createSummaryPrompt(for: text),
+            model: "phi3.5"
+        )
+        
+        return summary.isEmpty ? text : summary
     }
     
     private func createSummaryPrompt(for text: String) -> String {
@@ -69,20 +59,15 @@ class TranscriptionProcessor: ObservableObject {
         """
     }
     
-    func formatTranscription(_ text: String, format: TranscriptionFormat) async -> String {
+    func formatTranscription(_ text: String, format: TranscriptionFormat) async throws -> String {
         guard !text.isEmpty else { return text }
         
-        do {
-            let formattedText = try await ollamaClient.generate(
-                prompt: createFormattingPrompt(for: text, format: format),
-                model: "phi3.5"
-            )
-            
-            return formattedText.isEmpty ? text : formattedText
-        } catch {
-            print("Transcription formatting failed: \(error)")
-            return text // Fallback to original text
-        }
+        let formattedText = try await ollamaClient.generate(
+            prompt: createFormattingPrompt(for: text, format: format),
+            model: "phi3.5"
+        )
+        
+        return formattedText.isEmpty ? text : formattedText
     }
     
     private func createFormattingPrompt(for text: String, format: TranscriptionFormat) -> String {
