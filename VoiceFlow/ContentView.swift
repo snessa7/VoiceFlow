@@ -5,131 +5,123 @@ struct ContentView: View {
     @StateObject private var settingsViewModel = SettingsViewModel()
     
     var body: some View {
-        VStack(spacing: 20) {
-            // Header
+        VStack(spacing: 12) {
+            // Header - More compact
             HStack {
                 Image(systemName: "mic.fill")
-                    .font(.title)
+                    .font(.title2)
                     .foregroundColor(.blue)
                 Text("VoiceFlow")
                     .font(.title2)
                     .fontWeight(.bold)
                 Spacer()
+                
+                // Clear button moved to top right
+                Button("Clear") {
+                    recordingViewModel.clearTranscription()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
             
-            // Status Information
-            VStack(spacing: 10) {
+            // Status Information - More compact
+            VStack(spacing: 6) {
                 // Speech Recognition Status
-                HStack {
+                HStack(spacing: 8) {
                     Circle()
                         .fill(recordingViewModel.speechRecognitionAvailable ? Color.green : Color.red)
                         .frame(width: 8, height: 8)
                     Text(recordingViewModel.speechRecognitionAvailable ? "Speech Recognition Available" : "Speech Recognition Unavailable")
                         .font(.caption)
-                        .foregroundColor(recordingViewModel.speechRecognitionAvailable ? .green : .red)
+                        .foregroundColor(.secondary)
                     Spacer()
                 }
-                .padding(.horizontal)
                 
-                // Error Message
-                if let errorMessage = recordingViewModel.errorMessage {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text(errorMessage)
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                        Spacer()
-                        Button("Dismiss") {
-                            recordingViewModel.clearError()
-                        }
-                        .buttonStyle(PlainButtonStyle())
+                // Recording Status
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(recordingViewModel.isRecording ? Color.red : Color.gray)
+                        .frame(width: 8, height: 8)
+                    Text(recordingViewModel.isRecording ? "Recording..." : "Ready to Record")
                         .font(.caption)
-                    }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(Color.orange.opacity(0.1))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
+                        .foregroundColor(.secondary)
+                    Spacer()
                 }
             }
+            .padding(.horizontal, 16)
             
-            // Recording Status
-            VStack(spacing: 10) {
-                if recordingViewModel.isRecording {
-                    HStack {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 12, height: 12)
-                            .scaleEffect(recordingViewModel.audioLevel > 0.1 ? 1.2 : 1.0)
-                            .animation(.easeInOut(duration: 0.2), value: recordingViewModel.audioLevel)
-                        Text("Recording...")
-                            .foregroundColor(.red)
-                            .fontWeight(.medium)
-                        
-                        if recordingViewModel.isProcessing {
-                            Spacer()
-                            HStack(spacing: 4) {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                Text("Enhancing...")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    
-                    // Audio Level Visualization
-                    HStack(spacing: 4) {
-                        ForEach(0..<20, id: \.self) { index in
-                            Rectangle()
-                                .fill(Color.blue)
-                                .frame(width: 8, height: max(4, CGFloat(recordingViewModel.audioLevel * 40)))
-                                .opacity(index < Int(recordingViewModel.audioLevel * 20) ? 1.0 : 0.3)
-                        }
-                    }
-                    .frame(height: 40)
-                } else {
-                    HStack {
-                        Circle()
-                            .fill(Color.gray)
-                            .frame(width: 12, height: 12)
-                        Text("Ready to Record")
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            
-            // Transcription Display
-            if !recordingViewModel.transcription.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("Transcription")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Button("Clear") {
-                            recordingViewModel.clearTranscription()
-                        }
-                        .buttonStyle(PlainButtonStyle())
+            // Audio Level Indicator - Compact
+            if recordingViewModel.isRecording {
+                HStack(spacing: 8) {
+                    Text("Audio Level:")
                         .font(.caption)
-                    }
+                        .foregroundColor(.secondary)
                     
-                    ScrollView {
-                        Text(recordingViewModel.transcription)
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(.windowBackgroundColor))
-                            .cornerRadius(8)
-                    }
-                    .frame(maxHeight: 200)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.blue)
+                        .frame(width: max(20, CGFloat(recordingViewModel.audioLevel) * 100), height: 8)
+                        .animation(.easeInOut(duration: 0.1), value: recordingViewModel.audioLevel)
+                    
+                    Spacer()
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
             }
             
-            // Control Buttons
-            HStack(spacing: 20) {
+            // Transcription Area - More compact
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Transcription")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                
+                ScrollView {
+                    Text(recordingViewModel.transcription.isEmpty ? "Start recording to see transcription here..." : recordingViewModel.transcription)
+                        .font(.body)
+                        .foregroundColor(recordingViewModel.transcription.isEmpty ? .secondary : .primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(Color(.textBackgroundColor))
+                        .cornerRadius(8)
+                }
+                .frame(maxHeight: 200) // Limit height to fit window
+            }
+            .padding(.horizontal, 16)
+            
+            // Error Message - Compact
+            if let errorMessage = recordingViewModel.errorMessage {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 4)
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(6)
+                .padding(.horizontal, 16)
+            }
+            
+            // Processing Status - Compact
+            if recordingViewModel.isProcessing {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Processing with AI...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+            }
+            
+            Spacer(minLength: 8)
+            
+            // Action Buttons - More compact
+            HStack(spacing: 16) {
                 Button(action: {
                     if recordingViewModel.isRecording {
                         recordingViewModel.stopRecording()
@@ -137,56 +129,28 @@ struct ContentView: View {
                         recordingViewModel.startRecording()
                     }
                 }) {
-                    HStack {
+                    HStack(spacing: 6) {
                         Image(systemName: recordingViewModel.isRecording ? "stop.fill" : "mic.fill")
-                        Text(recordingViewModel.isRecording ? "Stop" : "Start Recording")
+                            .font(.system(size: 14))
+                        Text(recordingViewModel.isRecording ? "Stop Recording" : "Start Recording")
+                            .font(.system(size: 14, weight: .medium))
                     }
                     .frame(minWidth: 120)
-                    .padding()
-                    .background(recordingViewModel.isRecording ? Color.red : Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
                 .disabled(!recordingViewModel.speechRecognitionAvailable)
                 
-                if !recordingViewModel.transcription.isEmpty {
-                    Button(action: {
-                        recordingViewModel.copyToClipboard()
-                    }) {
-                        HStack {
-                            Image(systemName: "doc.on.clipboard")
-                            Text("Copy")
-                        }
-                        .frame(minWidth: 80)
-                        .padding()
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                Button("Copy") {
+                    recordingViewModel.copyToClipboard()
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .disabled(recordingViewModel.transcription.isEmpty)
             }
-            
-            // Settings Button
-            HStack {
-                Spacer()
-                Button(action: {
-                    // Open settings
-                }) {
-                    Image(systemName: "gear")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            .padding(.horizontal)
-            
-            Spacer()
+            .padding(.bottom, 16)
         }
-        .padding(.vertical)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear {
-            recordingViewModel.requestPermissions()
-        }
+        .frame(minWidth: 500, minHeight: 400)
+        .background(Color(.windowBackgroundColor))
     }
 }

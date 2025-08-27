@@ -120,12 +120,12 @@ class RecordingViewModel: ObservableObject {
     }
     
     func copyToClipboard() {
+        guard !transcription.isEmpty else { return }
         ClipboardManager.shared.copyToClipboard(transcription)
     }
     
     func clearTranscription() {
         transcription = ""
-        errorMessage = nil
     }
     
     func clearError() {
